@@ -6,7 +6,7 @@ const genl_routes = require('./router/general.js').general;
 
 const app = express();
 
-let users = []
+let users = require("./router/auth_users.js").users;
 
 const doesExist = (username)=>{
   let userswithsamename = users.filter((user)=>{
@@ -19,16 +19,7 @@ const doesExist = (username)=>{
   }
 }
 
-const authenticatedUser = (username,password)=>{
-  let validusers = users.filter((user)=>{
-    return (user.username === username && user.password === password)
-  });
-  if(validusers.length > 0){
-    return true;
-  } else {
-    return false;
-  }
-}
+
 
 app.use(express.json());
 
@@ -53,27 +44,6 @@ if(req.session.authorization) { //get the authorization object stored in the ses
      }
  });
  
- app.post("/login", (req,res) => {
-   const username = req.body.username;
-   const password = req.body.password;
- 
-   if (!username || !password) {
-       return res.status(404).json({message: "Error logging in"});
-   }
- 
-   if (authenticatedUser(username,password)) {
-     let accessToken = jwt.sign({
-       data: password
-     }, 'access', { expiresIn: 60 * 60 });
- 
-     req.session.authorization = {
-       accessToken,username
-   }
-   return res.status(200).send("User successfully logged in");
-   } else {
-     return res.status(208).json({message: "Invalid Login. Check username and password"});
-   }
- });
  
  app.post("/register", (req,res) => {
    const username = req.body.username;
@@ -81,9 +51,13 @@ if(req.session.authorization) { //get the authorization object stored in the ses
  
    if (username && password) {
      if (!doesExist(username)) { 
+        let len=users.length;
        users.push({"username":username,"password":password});
-       return res.status(200).json({message: "User successfully registred. Now you can login"});
-     } else {
+       let new_len=users.length;
+       if (new_len==len+1){
+        return res.status(200).json({message: "User successfully registered. Now you can login"});
+       }
+        } else {
        return res.status(404).json({message: "User already exists!"});    
      }
    } 
@@ -96,3 +70,4 @@ app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
 app.listen(PORT,()=>console.log("Server is running"));
+module.exports.users = users;
